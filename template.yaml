@@ -1,0 +1,84 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  immoscout
+
+  Sample SAM Template for immoscout
+
+
+Resources:
+  ImmoscoutCron:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.cron
+      Runtime: python3.6
+      Policies: AmazonDynamoDBFullAccess
+      MemorySize: 512
+      Timeout: 300
+      Events:
+        MuensterRental:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 0 * * ? *)
+            Input: >-
+              {
+                "is_rental": true,
+                "state": "Nordrhein-Westfalen",
+                "city": "Muenster"
+              }
+        MuensterCondo:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 0 * * ? *)
+            Input: >-
+              {
+                "is_rental": false,
+                "state": "Nordrhein-Westfalen",
+                "city": "Muenster"
+              }
+
+  ImmoscoutApi:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.api
+      Runtime: python3.6
+      Policies: AmazonDynamoDBFullAccess
+      MemorySize: 256
+      Timeout: 30
+      Events:
+        All:
+          Type: Api
+          Properties:
+            Path: /
+            Method: Get
+        ByState:
+          Type: Api
+          Properties:
+            Path: /{state}
+            Method: Get
+        ByCity:
+          Type: Api
+          Properties:
+            Path: /{state}/{city}
+            Method: Get
+        ByDistrict:
+          Type: Api
+          Properties:
+            Path: /{state}/{city}/{district}
+            Method: Get
+
+  ImmoscoutTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: immoscout
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
